@@ -244,11 +244,11 @@ void spiluk_symbolic(KernelHandle* handle,
 
 }  // spiluk_symbolic
 
-template <typename KernelHandle, typename ARowMapType, typename AEntriesType,
-          typename AValuesType, typename LRowMapType, typename LEntriesType,
-          typename LValuesType, typename URowMapType, typename UEntriesType,
-          typename UValuesType>
-void spiluk_numeric(KernelHandle* handle,
+template <typename ExecutionSpace, typename KernelHandle, typename ARowMapType,
+          typename AEntriesType, typename AValuesType, typename LRowMapType,
+          typename LEntriesType, typename LValuesType, typename URowMapType,
+          typename UEntriesType, typename UValuesType>
+void spiluk_numeric(const ExecutionSpace& execspace, KernelHandle* handle,
                     typename KernelHandle::const_nnz_lno_t fill_lev,
                     ARowMapType& A_rowmap, AEntriesType& A_entries,
                     AValuesType& A_values, LRowMapType& L_rowmap,
@@ -258,6 +258,18 @@ void spiluk_numeric(KernelHandle* handle,
   typedef typename KernelHandle::size_type size_type;
   typedef typename KernelHandle::nnz_lno_t ordinal_type;
   typedef typename KernelHandle::nnz_scalar_t scalar_type;
+
+  static_assert(Kokkos::is_execution_space<ExecutionSpace>::value,
+                "ExecutionSpace is not valid");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename ARowMapType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in ARowMapType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename AEntriesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in AEntriesType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename AValuesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in AValuesType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename LRowMapType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in LRowMapType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename LEntriesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in LEntriesType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename LValuesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in LValuesType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename URowMapType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in URowMapType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename UEntriesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in UEntriesType");
+  static_assert(Kokkos::SpaceAccessibility<ExecutionSpace, typename UValuesType::memory_space>::accessible, "spiluk_numeric: ExecutionSpace cannot access data in UValuesType");
 
   static_assert(KOKKOSKERNELS_SPILUK_SAME_TYPE(
                     typename ARowMapType::non_const_value_type, size_type),
@@ -389,6 +401,12 @@ void spiluk_numeric(KernelHandle* handle,
                 "different device_types.");
 
   static_assert(
+      std::is_same<ExecutionSpace,
+          typename KernelHandle::SPILUKHandleType::execution_space>::value,
+      "spiluk_numeric: KernelHandle's execution space is different from "
+      "ExecutionSpace.");
+
+  static_assert(
       std::is_same<
           typename LRowMapType::device_type::execution_space,
           typename KernelHandle::SPILUKHandleType::execution_space>::value,
@@ -448,7 +466,7 @@ void spiluk_numeric(KernelHandle* handle,
   typedef Kokkos::View<
       typename ARowMapType::const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<ARowMapType>::array_layout,
-      typename ARowMapType::device_type,
+      Kokkos::Device<ExecutionSpace, typename ARowMapType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       ARowMap_Internal;
 
@@ -456,21 +474,21 @@ void spiluk_numeric(KernelHandle* handle,
       typename AEntriesType::const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<
           AEntriesType>::array_layout,
-      typename AEntriesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename AEntriesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       AEntries_Internal;
 
   typedef Kokkos::View<
       typename AValuesType::const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<AValuesType>::array_layout,
-      typename AValuesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename AValuesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       AValues_Internal;
 
   typedef Kokkos::View<
       typename LRowMapType::const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<LRowMapType>::array_layout,
-      typename LRowMapType::device_type,
+      Kokkos::Device<ExecutionSpace, typename LRowMapType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       LRowMap_Internal;
 
@@ -478,21 +496,21 @@ void spiluk_numeric(KernelHandle* handle,
       typename LEntriesType::non_const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<
           LEntriesType>::array_layout,
-      typename LEntriesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename LEntriesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       LEntries_Internal;
 
   typedef Kokkos::View<
       typename LValuesType::non_const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<LValuesType>::array_layout,
-      typename LValuesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename LValuesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       LValues_Internal;
 
   typedef Kokkos::View<
       typename URowMapType::const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<URowMapType>::array_layout,
-      typename URowMapType::device_type,
+      Kokkos::Device<ExecutionSpace, typename URowMapType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       URowMap_Internal;
 
@@ -500,14 +518,14 @@ void spiluk_numeric(KernelHandle* handle,
       typename UEntriesType::non_const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<
           UEntriesType>::array_layout,
-      typename UEntriesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename UEntriesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       UEntries_Internal;
 
   typedef Kokkos::View<
       typename UValuesType::non_const_value_type*,
       typename KokkosKernels::Impl::GetUnifiedLayout<UValuesType>::array_layout,
-      typename UValuesType::device_type,
+      Kokkos::Device<ExecutionSpace, typename UValuesType::memory_space>,
       Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess> >
       UValues_Internal;
 
@@ -521,10 +539,11 @@ void spiluk_numeric(KernelHandle* handle,
   UEntries_Internal U_entries_i = U_entries;
   UValues_Internal U_values_i   = U_values;
 
-  KokkosSparse::Impl::SPILUK_NUMERIC<
+  KokkosSparse::Impl::SPILUK_NUMERIC<ExecutionSpace,
       const_handle_type, ARowMap_Internal, AEntries_Internal, AValues_Internal,
       LRowMap_Internal, LEntries_Internal, LValues_Internal, URowMap_Internal,
-      UEntries_Internal, UValues_Internal>::spiluk_numeric(&tmp_handle,
+      UEntries_Internal, UValues_Internal>::spiluk_numeric(execspace,
+                                                           &tmp_handle,
                                                            fill_lev, A_rowmap_i,
                                                            A_entries_i,
                                                            A_values_i,
@@ -534,6 +553,28 @@ void spiluk_numeric(KernelHandle* handle,
                                                            U_rowmap_i,
                                                            U_entries_i,
                                                            U_values_i);
+
+}  // spiluk_numeric
+
+/// Executed on the default stream of the execution_space associted with A.
+template <typename KernelHandle, typename ARowMapType, typename AEntriesType,
+          typename AValuesType, typename LRowMapType, typename LEntriesType,
+          typename LValuesType, typename URowMapType, typename UEntriesType,
+          typename UValuesType>
+void spiluk_numeric(KernelHandle* handle,
+                    typename KernelHandle::const_nnz_lno_t fill_lev,
+                    ARowMapType& A_rowmap, AEntriesType& A_entries,
+                    AValuesType& A_values, LRowMapType& L_rowmap,
+                    LEntriesType& L_entries, LValuesType& L_values,
+                    URowMapType& U_rowmap, UEntriesType& U_entries,
+                    UValuesType& U_values) {
+
+  const typename AValuesType::execution_space space =
+      typename AValuesType::execution_space();
+  spiluk_numeric(space, handle, fill_lev,
+                 A_rowmap, A_entries, A_values, 
+                 L_rowmap, L_entries, L_values,
+                 U_rowmap, U_entries, U_values);
 
 }  // spiluk_numeric
 

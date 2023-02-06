@@ -354,16 +354,14 @@ struct ILUKLvlSchedTP1NumericFunctor {
   }
 };
 
-template <class IlukHandle, class ARowMapType, class AEntriesType,
-          class AValuesType, class LRowMapType, class LEntriesType,
-          class LValuesType, class URowMapType, class UEntriesType,
-          class UValuesType>
-void iluk_numeric(IlukHandle &thandle, const ARowMapType &A_row_map,
-                  const AEntriesType &A_entries, const AValuesType &A_values,
-                  const LRowMapType &L_row_map, const LEntriesType &L_entries,
-                  LValuesType &L_values, const URowMapType &U_row_map,
-                  const UEntriesType &U_entries, UValuesType &U_values) {
-  using execution_space         = typename IlukHandle::execution_space;
+template <class ExecutionSpace, class IlukHandle, class ARowMapType,
+          class AEntriesType, class AValuesType, class LRowMapType,
+          class LEntriesType, class LValuesType, class URowMapType,
+          class UEntriesType, class UValuesType>
+void iluk_numeric(const ExecutionSpace& execspace, IlukHandle &thandle,
+                  const ARowMapType &A_row_map, const AEntriesType &A_entries, const AValuesType &A_values,
+                  const LRowMapType &L_row_map, const LEntriesType &L_entries, LValuesType &L_values,
+                  const URowMapType &U_row_map, const UEntriesType &U_entries, UValuesType &U_values) {
   using size_type               = typename IlukHandle::size_type;
   using nnz_lno_t               = typename IlukHandle::nnz_lno_t;
   using HandleDeviceEntriesType = typename IlukHandle::nnz_lno_view_t;
@@ -407,7 +405,7 @@ void iluk_numeric(IlukHandle &thandle, const ARowMapType &A_row_map,
           KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_RP) {
         Kokkos::parallel_for(
             "parfor_fixed_lvl",
-            Kokkos::RangePolicy<execution_space>(lev_start, lev_end),
+            Kokkos::RangePolicy<ExecutionSpace>(execspace, lev_start, lev_end),
             ILUKLvlSchedRPNumericFunctor<
                 ARowMapType, AEntriesType, AValuesType, LRowMapType,
                 LEntriesType, LValuesType, URowMapType, UEntriesType,
@@ -416,7 +414,7 @@ void iluk_numeric(IlukHandle &thandle, const ARowMapType &A_row_map,
                 U_row_map, U_entries, U_values, level_idx, iw, lev_start));
       } else if (thandle.get_algorithm() ==
                  KokkosSparse::Experimental::SPILUKAlgorithm::SEQLVLSCHD_TP1) {
-        using policy_type = Kokkos::TeamPolicy<execution_space>;
+        using policy_type = Kokkos::TeamPolicy<ExecutionSpace>;
         int team_size     = thandle.get_team_size();
 
         nnz_lno_t lvl_rowid_start = 0;
@@ -438,11 +436,11 @@ void iluk_numeric(IlukHandle &thandle, const ARowMapType &A_row_map,
 
           if (team_size == -1)
             Kokkos::parallel_for("parfor_l_team",
-                                 policy_type(lvl_nrows_chunk, Kokkos::AUTO),
+                                 policy_type(execspace, lvl_nrows_chunk, Kokkos::AUTO),
                                  tstf);
           else
             Kokkos::parallel_for("parfor_l_team",
-                                 policy_type(lvl_nrows_chunk, team_size), tstf);
+                                 policy_type(execspace, lvl_nrows_chunk, team_size), tstf);
           Kokkos::fence();
           lvl_rowid_start += lvl_nrows_chunk;
         }
