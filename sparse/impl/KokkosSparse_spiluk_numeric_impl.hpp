@@ -393,7 +393,7 @@ void iluk_numeric(const ExecutionSpace& execspace, IlukHandle &thandle,
     level_nrowsperchunk_h = thandle.get_level_nrowsperchunk();
   }
   iw = thandle.get_iw();
-  printf("In iluk_numeric: iw(%d x %d) is at address %p\n", iw.extent(0), iw.extent(1), (void*)(iw.data()));
+  printf("  In iluk_numeric: iw(%d x %d) is at address %p\n", iw.extent(0), iw.extent(1), (void*)(iw.data()));
 
   // Main loop must be performed sequential. Question: Try out Cuda's graph
   // stuff to reduce kernel launch overhead
