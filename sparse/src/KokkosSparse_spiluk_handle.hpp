@@ -178,6 +178,7 @@ class SPILUKHandle {
     iw = work_view_t(Kokkos::view_alloc(Kokkos::WithoutInitializing, "iw"),
                      nrows_, ncols_);
     Kokkos::deep_copy(iw, nnz_lno_t(-1));
+    printf("In alloc_iw: iw(%d x %d) is at address %p\n", iw.extent(0), iw.extent(1), (void*)(iw.data()));
   }
 
   KOKKOS_INLINE_FUNCTION
