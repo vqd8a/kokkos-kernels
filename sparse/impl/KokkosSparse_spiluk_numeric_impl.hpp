@@ -384,7 +384,7 @@ void iluk_numeric(const ExecutionSpace& execspace, IlukHandle &thandle,
   level_ptr_h = LevelHostViewType(
       Kokkos::view_alloc(Kokkos::WithoutInitializing, "Host level pointers"),
       level_ptr.extent(0));
-  Kokkos::deep_copy(level_ptr_h, level_ptr);
+  Kokkos::deep_copy(execspace, level_ptr_h, level_ptr);
 
   //{
   if (thandle.get_algorithm() ==
