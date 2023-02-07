@@ -441,7 +441,7 @@ void iluk_numeric(const ExecutionSpace& execspace, IlukHandle &thandle,
           else
             Kokkos::parallel_for("parfor_l_team",
                                  policy_type(execspace, lvl_nrows_chunk, team_size), tstf);
-          Kokkos::fence();
+          execspace.fence();
           lvl_rowid_start += lvl_nrows_chunk;
         }
       }
